@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>ajaxform.js demo</title>
+        <script src="ajaxform.js"></script>
+    </head>
+    <body>
+        <h1>ajaxform.js demo</h1>
+        <h3>A pure javascript ajax form</h3>
+        <form action="testurl" method="get">
+            <table>
+                <tr><td><input name="test"/></td></tr>
+                <tr><td><input name="test2"/></td></tr>
+                <tr><td><input name="test2"/></td></tr>
+                <tr><td><input name="test2"/></td></tr>
+                <tr><td><input name="test3"/></td></tr>
+                <tr>
+                    <td>
+                <input name="r1" type="radio" value="r1"/>
+                <input name="r1" type="radio" value="r2"/>
+                <input name="r1" type="radio" value="r3"/>
+                <input type="checkbox" name="check" value="true"/>
+            </td></tr>
+                <tr><td><select name="test4">
+                            <option value="a">a</option>
+                            <option value="b">b</option>
+                            <option value="c">c</option>
+                            </select>
+                    </td></tr>
+
+                    <tr><td>
+                <input type="button" id="submit" value="submit"/>
+        </td></tr>
+        </form>
+        <p>javascript code:</p>
+        <pre style="border: 1px solid #888;">
+    var button = document.getElementById('submit');
+    var form = document.forms[0];
+    button.onclick = function(){
+        ajaxForm(form, function(xmlhttp){
+            alert(xmlhttp.status)
+            alert(xmlhttp.responseText)
+        });
+    }
+        </pre>
+        <script>
+            var button = document.getElementById('submit');
+            var form = document.forms[0];
+            button.onclick = function(){
+                ajaxForm(form, function(xmlhttp){
+                    alert(xmlhttp.status)
+                    alert(xmlhttp.responseText)
+                });
+            }
+        </script>
+    </body>
+</html>
+
