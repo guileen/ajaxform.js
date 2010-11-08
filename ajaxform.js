@@ -1,14 +1,79 @@
 /**
- * @license
+ * @license GPL licenses.
  * @author Jason Green [guileen AT gmail.com]
- *
  * Migrate from jquery Form Plugin : http://malsup.com/jquery/form/
  * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
- *   http://www.gnu.org/licenses/gpl.html
+ *   http://www.gnu.org/licenses/gpl.html.
+ *
+ *
  */
 
-(function() {
+(function(window) {
+
+/**
+ * Base type fix
+ */
+String.prototype['trim'] = function() {
+    return this.replace(/^\s+|\s+$/g, '');
+}
+
+String.prototype['trimLeft'] = function() {
+    return this.replace(/^\s+/, '');
+}
+
+String.prototype['trimRight'] = function() {
+    return this.replace(/\s+$/, '');
+}
+
+window.JSON = window.JSON || {};
+
+JSON.parse = JSON.parse || function(data) {
+    if (typeof data !== 'string' || !data) {
+        return null;
+    }
+
+    // Make sure leading/trailing whitespace is removed (IE can't handle it)
+    data = data.trim();
+
+    // Make sure the incoming data is actual JSON
+    // Logic borrowed from http://json.org/json2.js
+    if (/^[\],:{}\s]*$/.test(data.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
+        .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+        .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+
+        // Try to use the native JSON parser first
+        return (new Function('return ' + data))();
+
+    } else {
+        throw new SyntaxError('Invalid JSON: ' + data);
+    }
+};
+
+/**
+ * call uri?jsonp=callback_name
+ */
+var JSONP = function(uri, params) {
+    callback_called = false;
+
+    var agent = navigator.userAgent.toLowerCase();
+
+    uri += uri.indexOf('?') >= 0 ? '&' : '?' + buildQueryString(params);
+
+    var script_channel = document.getElementById(uri);// reuse script element
+    if (script_channel) {
+        script_channel.setAttribute('src', uri);
+        return;
+    }
+    script_channel = document.createElement('script');
+    script_channel.id = uri;
+    script_channel.src = uri;
+    script_channel.type = 'text/javascript';
+    script_channel.className = 'temp_script';
+
+    var body = document.getElementsByTagName('body')[0];
+    body.appendChild(script_channel);
+};
 
 /**
  * Returns the value of the field element.
@@ -97,7 +162,7 @@ var formToArray = function(form) {
 
 // Serialize an array of form elements or a set of
 // key/values into a query string
-var param = function(a) {
+var buildQueryString = function(a) {
 
     var s = [];
     var isArray = a.constructor == Array;
@@ -120,7 +185,7 @@ var param = function(a) {
  * serialize the form to query string
  */
 var formSerialize = function(form) {
-    return param(formToArray(form));
+    return buildQueryString(formToArray(form));
 }
 
 /**
@@ -149,5 +214,6 @@ var ajaxForm = function(form, oncomplet) {
 
 window['formSerialize'] = formSerialize;
 window['ajaxForm'] = ajaxForm;
+window['JSONP'] = JSONP;
 
-})();
+})(window);
