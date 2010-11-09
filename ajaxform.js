@@ -46,7 +46,7 @@ JSON.parse = JSON.parse || function(data) {
         return (new Function('return ' + data))();
 
     } else {
-        throw new SyntaxError('Invalid JSON: ' + data);
+        throw 'Invalid JSON: ' + data;
     }
 };
 
@@ -146,6 +146,7 @@ var formToArray = function(form) {
         }
 
         v = fieldValue(el);
+
         if (v && v.constructor == Array) {
             for (j = 0, jmax = v.length; j < jmax; j++) {
                 a.push({name: n, value: v[j]});
@@ -167,14 +168,18 @@ var buildQueryString = function(a) {
     var s = [];
     var isArray = a.constructor == Array;
 
-    for (var key in a) {
-        var value = a[key];
-        if (isArray) {
-            key = value.name;
-            value = value.value;
+    if (isArray) {
+        for (var i = 0; i < a.length; i++) {
+            var v = a[i];
+            var k = v.name;
+            v = v.value;
+            s[s.length] = encodeURIComponent(k) + '=' + encodeURIComponent(v);
         }
-        value = typeof value == 'function' ? value() : value;
-        s[s.length] = encodeURIComponent(key) + '=' + encodeURIComponent(value);
+    }else {
+        for (var k in a) {
+            var v = a[i];
+            s[s.length] = encodeURIComponent(k) + '=' + encodeURIComponent(v);
+        }
     }
 
     // Return the resulting serialization
@@ -209,7 +214,10 @@ var ajaxForm = function(form, oncomplet) {
             oncomplet(xmlHttp);
     };
     xmlHttp.open(method, url, true);
-    xmlHttp.send(data);
+    if (data) {
+        xmlHttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xmlHttp.send(data);
+    }
 }
 
 window['formSerialize'] = formSerialize;
