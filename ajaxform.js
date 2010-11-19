@@ -26,6 +26,68 @@ String.prototype['trimRight'] = function() {
     return this.replace(/\s+$/, '');
 }
 
+var rclass = /[\n\t]/g,
+    rspace = /\s+/,
+    rreturn = /\r/g,
+    rspecialurl = /href|src|style/,
+    rtype = /(button|input)/i,
+    rfocusable = /(button|input|object|select|textarea)/i,
+    rclickable = /^(a|area)$/i,
+    rradiocheck = /radio|checkbox/;
+
+var addClass = function(elem, value) {
+    var classNames = (value || '').split(rspace);
+    if (elem.nodeType === 1) {
+        if (!elem.className) {
+            elem.className = value;
+
+        } else {
+            var className = ' ' + elem.className + ' ';
+            var setClass = elem.className;
+            for (var c = 0, cl = classNames.length; c < cl; c++) {
+                if (className.indexOf(' ' + classNames[c] + ' ') < 0) {
+                    setClass += ' ' + classNames[c];
+                }
+            }
+            elem.className = setClass.trim();
+        }
+    }
+}
+
+var removeClass = function(elem, value) {
+
+    var classNames = (value || '').split(rspace);
+
+    if (elem.nodeType === 1 && elem.className) {
+        if (value) {
+            var className = (' ' + elem.className + ' ').replace(rclass, ' ');
+            for (var c = 0, cl = classNames.length; c < cl; c++) {
+                className = className.replace(' ' + classNames[c] + ' ', ' ');
+            }
+            elem.className = className .trim();
+
+        } else {
+            elem.className = '';
+        }
+    }
+
+}
+
+var toggleClass = function(elem, value) {
+    if (hasClass(elem, value)) {
+        removeClass(elem, value);
+    }else {
+        addClass(elem, value);
+    }
+}
+
+var hasClass = function(elem, selector) {
+    var className = ' ' + selector + ' ';
+    return (' ' + elem.className + ' ').replace(rclass, ' ')
+        .indexOf(className) > -1;
+}
+
+
 window.JSON = window.JSON || {};
 
 JSON.parse = JSON.parse || function(data) {
@@ -215,7 +277,8 @@ var ajaxForm = function(form, oncomplet) {
     };
     xmlHttp.open(method, url, true);
     if (data) {
-        xmlHttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xmlHttp.setRequestHeader('Content-Type',
+            'application/x-www-form-urlencoded');
         xmlHttp.send(data);
     }
 }
