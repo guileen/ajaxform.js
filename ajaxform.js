@@ -87,7 +87,7 @@ var hasClass = function(elem, selector) {
         .indexOf(className) > -1;
 }
 
-
+/*
 window.JSON = window.JSON || {};
 
 JSON.parse = JSON.parse || function(data) {
@@ -100,8 +100,9 @@ JSON.parse = JSON.parse || function(data) {
 
     // Make sure the incoming data is actual JSON
     // Logic borrowed from http://json.org/json2.js
-    if (/^[\],:{}\s]*$/.test(data.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
-        .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+    if (/^[\],:{}\s]*$/.test(
+        data.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@').replace(
+        /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
         .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
 
         // Try to use the native JSON parser first
@@ -111,6 +112,7 @@ JSON.parse = JSON.parse || function(data) {
         throw 'Invalid JSON: ' + data;
     }
 };
+*/
 
 /**
  * call uri?jsonp=callback_name
@@ -179,6 +181,22 @@ var fieldValue = function(el) {
 };
 
 
+var _appendNameValue = function(arr, name, value) {
+    if (arr && arr.constructor == Array) {
+        arr.push({name: name, value: value});
+    }else {
+        old = arr[name];
+        if (old) {
+            if (old.constructor != Array)
+                arr[name] = [old];
+            arr[name].push(value);
+        }else {
+            arr[name] = value;
+        }
+    }
+}
+
+
 /**
  * formToArray() gathers form element data into an array of objects that can
  * be passed to any of the following ajax functions: $.get, $.post, or load.
@@ -191,8 +209,8 @@ var fieldValue = function(el) {
  * It is this array that is passed to pre-submit callback functions provided to
  * the ajaxSubmit() and ajaxForm() methods.
  */
-var formToArray = function(form) {
-    var a = [];
+var formToArray = function(form, arr) {
+    var a = arr || [];
 
     var els = form.elements;
     if (!els) {
@@ -211,17 +229,29 @@ var formToArray = function(form) {
 
         if (v && v.constructor == Array) {
             for (j = 0, jmax = v.length; j < jmax; j++) {
-                a.push({name: n, value: v[j]});
+                _appendNameValue(a, n, v[j]);
             }
         }
         else if (v !== null && typeof v != 'undefined') {
-            a.push({name: n, value: v});
+            _appendNameValue(a, n, v);
         }
     }
 
     return a;
 }
 
+/**
+ * {"formname": {"name1":value1, "name2":["item1","item2","item3"] } }
+ */
+var formToObject = function(form, name) {
+    var obj = formToArray(form, {});
+    if (name) {
+        var o = {};
+        o[name] = obj;
+        return o;
+    }
+    return obj;
+}
 
 // Serialize an array of form elements or a set of
 // key/values into a query string
@@ -239,8 +269,16 @@ var buildQueryString = function(a) {
         }
     }else {
         for (var k in a) {
-            var v = a[i];
-            s[s.length] = encodeURIComponent(k) + '=' + encodeURIComponent(v);
+            var v = a[k];
+            if (v && v.constructor == Array) {
+                for (var i in v) {
+                    s[s.length] = encodeURIComponent(k) +
+                        '=' + encodeURIComponent(v[i]);
+                }
+            }else {
+                s[s.length] = encodeURIComponent(k) +
+                    '=' + encodeURIComponent(v);
+            }
         }
     }
 
@@ -255,18 +293,16 @@ var formSerialize = function(form) {
     return buildQueryString(formToArray(form));
 }
 
-/**
- * oncomplet is a function takes 1 argument instance of XMLHttpRequest
- */
-var ajaxForm = function(form, oncomplet) {
-    var url = form.action;
-    var method = form.method.toUpperCase();
-    var q = formSerialize(form);
-    var data = null;
-    if (method == 'GET') {
-        url += url.indexOf('?') >= 0 ? '&' : '?' + q;
-    } else {
-        data = q;
+var ajax = function(url, oncomplet, method, params, data, headers) {
+    var method = method ? method.toUpperCase() : 'GET';
+    var q = params ? buildQueryString(params) : null;
+    var data = data || null;
+    if (q) {
+        if (method == 'GET' || data) {
+            url += url.indexOf('?') >= 0 ? '&' : '?' + q;
+        } else {
+            data = q;
+        }
     }
 
     var xmlHttp = window.XMLHttpRequest ? new XMLHttpRequest() :
@@ -276,15 +312,67 @@ var ajaxForm = function(form, oncomplet) {
             oncomplet(xmlHttp);
     };
     xmlHttp.open(method, url, true);
-    if (data) {
+    for (var k in headers) {
+        v = headers[k];
+        if (typeof v == 'string')
+            xmlHttp.setRequestHeader(k, v);
+    }
+    if (data && headers == null) {
         xmlHttp.setRequestHeader('Content-Type',
             'application/x-www-form-urlencoded');
-        xmlHttp.send(data);
+    }
+    xmlHttp.send(data);
+}
+
+/**
+ * oncomplet is a function takes 1 argument instance of XMLHttpRequest
+ */
+var ajaxSubmit = function(form, oncomplet, headers) {
+    ajax(form.action, oncomplet, form.method, formToArray(form), headers || {'Content-Type': 'application/x-www-form-urlencoded'});
+}
+
+var ajaxForm = function(form, oncomplet) {
+    form.onsubmit = function(e) {
+        ajaxSubmit(form, oncomplet);
+        return false;
     }
 }
 
+var rest_content_type = 'application/json';
+
+var rest = function(url, oncomplet, method, params, data, headers, content_type) {
+    headers = headers || {};
+    content_type = content_type || rest_content_type;
+    headers['Accept'] = headers['Accept'] || content_type;
+    headers['Content-Type'] = headers['Content-Type'] || content_type;
+    ajax(url, oncomplet, method, params, data, headers);
+}
+
+var restSubmit = function(form, oncomplet, headers, content_type) {
+    var postObject = formToObject(form, form.name);
+    rest(form.action,
+        function(xmlHttp) {
+            oncomplet(xmlHttp, postObject);
+        },
+        form.method, null,
+        JSON.stringify(postObject),
+        headers, content_type);
+}
+
+var restForm = function(form, oncomplet, headers, content_type) {
+    form.onsubmit = function(e) {
+        restSubmit(form, oncomplet, headers, content_type);
+        return false;
+    }
+}
+window['formToArray'] = formToArray;
+window['formToObject'] = formToObject;
 window['formSerialize'] = formSerialize;
+window['ajax'] = ajax;
+window['ajaxSubmit'] = ajaxSubmit;
 window['ajaxForm'] = ajaxForm;
-window['JSONP'] = JSONP;
+window['rest'] = rest;
+window['restSubmit'] = restSubmit;
+window['restForm'] = restForm;
 
 })(window);

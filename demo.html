@@ -34,6 +34,8 @@
         </form>
         <p>javascript code:</p>
         <pre style="border: 1px solid #888;">
+        var jsonData = JSON.parse('{"id":100, "name":"JSON name"}');
+        alert(jsonData.name);
     var button = document.getElementById('submit');
     var form = document.forms[0];
     button.onclick = function(){
@@ -44,6 +46,8 @@
     }
         </pre>
         <script>
+            var jsonData = JSON.parse('{"id":100, "name":"JSON name"}');
+            JSONP('test',{'jsonp':'callback','time':'time'});
             var button = document.getElementById('submit');
             var form = document.forms[0];
             button.onclick = function(){
@@ -51,7 +55,7 @@
                     alert(xmlhttp.status)
                     alert(xmlhttp.responseText)
                 });
-            }
+            };
         </script>
     </body>
 </html>
